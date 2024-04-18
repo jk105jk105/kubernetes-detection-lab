@@ -1,0 +1,112 @@
+# Default values for Vector
+# See Vector helm documentation to learn more:
+# https://vector.dev/docs/setup/installation/package-managers/helm/
+
+# role -- [Role](https://vector.dev/docs/setup/deployment/roles/) for this Vector instance, valid options are:
+# "Agent", "Aggregator", and "Stateless-Aggregator".
+
+# Each role is created with the following workloads:
+# Agent = DaemonSet
+# Aggregator = StatefulSet
+# Stateless-Aggregator = Deployment
+role: "Agent"
+
+# Define the Vector image to use.
+image:
+  # image.repository -- Override default registry and name for Vector's image.
+  repository: timberio/vector
+  # image.pullPolicy -- The [pullPolicy](https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy) for
+  # Vector's image.
+  pullPolicy: IfNotPresent
+  # image.pullSecrets -- The [imagePullSecrets](https://kubernetes.io/docs/concepts/containers/images/#specifying-imagepullsecrets-on-a-pod)
+  # to reference for the Vector Pods.
+
+rbac:
+  # rbac.create -- If true, create and use RBAC resources. Only valid for the "Agent" role.
+  create: true
+
+serviceAccount:
+  # serviceAccount.create -- If true, create a ServiceAccount for Vector.
+  create: true
+  # serviceAccount.annotations -- Annotations to add to Vector's ServiceAccount.
+  name:
+  # serviceAccount.automountToken -- Automount API credentials for Vector's ServiceAccount.
+  automountToken: true
+
+# args -- Override Vector's default arguments.
+args:
+  - --config-dir
+  - "/etc/vector/"
+
+# Configuration for Vector's Service.
+service:
+  # service.enabled -- If true, create and provide a Service resource for Vector.
+  enabled: true
+  # service.type -- Set the type for Vector's Service.
+  type: "ClusterIP"
+
+# customConfig -- Override Vector's default configs, if used **all** options need to be specified. This section supports
+# using helm templates to populate dynamic values. See Vector's [configuration documentation](https://vector.dev/docs/reference/configuration/)
+# for all options.
+customConfig:
+  transforms:
+    modify:
+      type: remap
+      inputs:
+        - kubernetes_logs
+      source: |
+              . = parse_json!(.message)
+  data_dir: /vector-data-dir
+  api:
+    enabled: true
+    address: 127.0.0.1:8686
+    playground: false
+  sources:
+    kubernetes_logs:
+      type: file
+      include:
+        - /var/run/cilium/tetragon/tetragon.log
+  sinks:
+    splunk_hec:
+      type: splunk_hec_logs
+      inputs: 
+        - modify
+      encoding:
+        codec: json
+      compression: none
+      endpoint: 'https://<your-splunk-server>:8088'
+      endpoint_target: "event"
+      token: <your-splunk-HEC-token>
+	  tls:
+	    verify_certificate: false # because self-signed cert
+        
+# extraVolumes -- Additional Volumes to use with Vector Pods.
+extraVolumes:
+  - name: tetra-log
+    hostPath:
+      path: "/var/run/cilium/tetragon/"
+
+# extraVolumeMounts -- Additional Volume to mount into Vector Containers.
+extraVolumeMounts: 
+  - name: tetra-log
+    mountPath: "/var/run/cilium/tetragon/"
+    readOnly: true
+
+# dnsPolicy -- Specify the [dnsPolicy](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy)
+# for Vector Pods.
+dnsPolicy: ClusterFirst
+
+# podLabels -- Set labels on Vector Pods.
+podLabels:
+  vector.dev/exclude: "true"
+
+# rollWorkload -- Add a checksum of the generated ConfigMap to workload annotations.
+rollWorkload: true
+
+# Configuration for Vector's Headless Service.
+serviceHeadless:
+  # serviceHeadless.enabled -- If true, create and provide a Headless Service resource for Vector.
+  enabled: true
+
+# terminationGracePeriodSeconds -- Override Vector's terminationGracePeriodSeconds.
+terminationGracePeriodSeconds: 60
