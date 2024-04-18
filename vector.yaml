@@ -49,14 +49,6 @@ service:
 # using helm templates to populate dynamic values. See Vector's [configuration documentation](https://vector.dev/docs/reference/configuration/)
 # for all options.
 customConfig:
-  transforms:
-    modify:
-      type: remap
-      inputs:
-        - kubernetes_logs
-      source: |
-              . = parse_json!(.message)
-  data_dir: /vector-data-dir
   api:
     enabled: true
     address: 127.0.0.1:8686
@@ -66,6 +58,13 @@ customConfig:
       type: file
       include:
         - /var/run/cilium/tetragon/tetragon.log
+  transforms:
+    modify:
+      type: remap
+      inputs:
+        - kubernetes_logs
+      source: |
+              . = parse_json!(.message)
   sinks:
     splunk_hec:
       type: splunk_hec_logs
