@@ -53,6 +53,7 @@ customConfig:
     enabled: true
     address: 127.0.0.1:8686
     playground: false
+  data_dir: /vector-data-dir
   sources:
     kubernetes_logs:
       type: file
