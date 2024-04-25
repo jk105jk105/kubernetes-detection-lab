@@ -77,8 +77,8 @@ customConfig:
       endpoint: 'https://<your-splunk-server>:8088'
       endpoint_target: "event"
       token: <your-splunk-HEC-token>
-	  tls:
-	    verify_certificate: false # because self-signed cert
+      tls:
+        verify_certificate: false # because self-signed cert
         
 # extraVolumes -- Additional Volumes to use with Vector Pods.
 extraVolumes:
